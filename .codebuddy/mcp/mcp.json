@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "lexiang": {
+      "type": "custom",
+      "name": "腾讯乐享",
+      "app_key": "3931ae5cb2a511efa2ac7245416cd0f6",
+      "api_base": "https://lxapi.lexiangla.com",
+      "doc_url": "https://lexiangla.com/wiki/api/",
+      "capabilities": ["通讯录", "应用/知识库", "AI接口", "消息通知", "内容上传", "数据统计", "回调通知"],
+      "tool_script": "10_日常工作/_lexiang_api.py",
+      "note": "access_token有效期2小时，自动缓存管理"
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "d:/BaiduSyncdisk/CODE"],
+      "description": "本地文件系统读写 - 批量处理财报、文档等"
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "description": "复杂推理引擎 - 财务分析逻辑推演、多步骤决策"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "description": "实时库文档查询 - Python/Node.js 最新 API 文档"
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-playwright"],
+      "description": "浏览器自动化 - 网页数据抓取、自动填报、截图"
+    }
+  }
+}

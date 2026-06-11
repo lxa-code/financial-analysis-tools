@@ -1,0 +1,213 @@
+---
+description: Security Vulnerability Protection Rules for AI Code Generation
+globs: **/*
+alwaysApply: true
+enabled: true
+---
+
+# Security Rules for AI Code Generation V5
+
+## GOLDEN RULES
+- Implement what is asked using the SAFE variant. If asked to "execute user code / deserialize / render dynamic template / fetch URL", do it through the sandbox/safe API listed below — do not silently refuse.
+- Treat ALL external input (HTTP query/body/header/cookie/file/upload-name/env/DNS-result/HTTP-redirect-target) as HOSTILE.
+- Validate at EVERY trust boundary. When in doubt, REJECT (HTTP 4xx) — never crash.
+- NEVER use eval / Function() / dynamic require / reflection-based class load / runtime code compile with ANY user-derived data.
+- NEVER hardcode secrets, NEVER provide default values for secrets, NEVER ship demo credentials. Read from env and fail-fast if missing (see RULE 5).
+
+## RULE 1: SQL Injection (CWE-89)
+- 100% parameterized queries. NEVER concatenate/format user input into SQL.
+  ✅ `cursor.execute("SELECT * FROM u WHERE id=?", (uid,))`
+  ✅ `db.Query("SELECT * FROM u WHERE id=$1", uid)` / `pdo->prepare(...)->execute([$id])`
+  ✅ JPA: `createQuery("from U where id=:id").setParameter("id", id)`
+  ❌ `f"... WHERE id={uid}"` / `"... WHERE id=" + uid` / `String.format` / `fmt.Sprintf` into SQL.
+- Dynamic `ORDER BY / GROUP BY / table / column / sortDir`: MUST whitelist (Set/enum) BEFORE use.
+  ✅ `if order_by not in ALLOWED_COLS: raise` then inline the validated literal.
+  ❌ Pass user `orderBy` directly into SQL even via ORM.
+- ORM raw/native queries follow the same rules as raw SQL.
+
+## RULE 2: Command Injection (CWE-78, CWE-77)
+- NEVER spawn a shell with user data. NEVER concat into command strings.
+  ✅ Python: `subprocess.run(["ping","-c","1",host], shell=False, timeout=...)`
+  ✅ Node:   `execFile("ping",["-c","1",host])` — NEVER `exec`/`child_process.exec`/`spawn("sh", ...)` with input.
+  ✅ Go:     `exec.Command("ping","-c","1",host)` — NEVER `bash -c` with input.
+  ✅ Java:   `new ProcessBuilder("nslookup", domain).start()` — NEVER `Runtime.exec(String)` concat.
+  ✅ PHP:    Avoid; if needed `escapeshellarg` + fixed argv. NEVER `system($_GET[..])`.
+- Reject inputs containing shell metacharacters: `` ` $ ; | & < > \ \n \r `` and embedded NUL.
+- Even with argv, validate the value (whitelist domain/host/IP charset, length).
+
+## RULE 3: Path Traversal & Zip Slip (CWE-22)
+Mandatory order: **base→absolute→join→normalize→boundary check→(then) act**.
+- Base dir: convert to absolute + resolve symlinks ONCE at startup. The base dir is **fixed in code/config**, NEVER taken from user input.
+- ❌ Endpoint that accepts a `dir` / `path` / `directory` parameter and operates on it directly (e.g., `tar -C user_dir`, `zip -r user_dir`). If a user-selected scope is required, accept an enum like `dir_id` and map server-side to a fixed path.
+- Join with path API (`os.path.join`, `path.join`, `filepath.Join`, `Paths.get`), never string `+`.
+- Normalize: `realpath`/`Path.toRealPath()` for READ (must exist); `Path.normalize()` for WRITE/extract.
+- Boundary check via prefix on absolute paths (`startswith(base + sep)` / `Path.startsWith`); reject otherwise.
+- Reject filenames containing `..`, leading `/`, `\`, NUL, drive letters, or absolute paths from clients.
+- **Zip/Tar extraction**: validate EACH entry name with the same flow. **Reject symlink entries** by checking entry mode (`(info.external_attr >> 16) & 0o170000 == 0o120000` in Python; `Header.Typeflag == TypeSymlink` in Go) — symlinks bypass realpath checks via TOCTOU. Prefer `extract()` per-entry over `extractall()`.
+- Never feed raw user input to `include/require/Files.readAllBytes/sendFile` without validation.
+
+## RULE 4: SSRF (CWE-918)
+**Mandatory pipeline (all 6 steps, in order):**
+1. Parse URL; enforce scheme allowlist (`http`/`https` only); reject `file://`, `gopher://`, `dict://`, `ftp://`, `data:`.
+2. Extract host AND port; reject non-standard ports unless explicitly required.
+3. DNS-resolve hostname → get ALL A/AAAA records.
+4. Validate EVERY resolved IP against blocklist: loopback, link-local, private (`10/8`, `172.16/12`, `192.168/16`, `fc00::/7`, `fe80::/10`), multicast, reserved, `0.0.0.0`, metadata `169.254.169.254`, `100.64.0.0/10`, IPv4-mapped IPv6.
+5. **Pin the validated IP for the actual connection** — do NOT re-resolve. (Defeats DNS rebinding.) Examples:
+   - Java: build URI with the validated IP and set `Host` header to original hostname; OR use `HttpClient` with custom `DnsResolver` returning the pinned IP.
+   - Node: use `lookup` option in http(s).Agent / axios `httpAgent` to return the pinned IP; OR use `setRequestInterception` (Puppeteer) and validate every request.
+   - Python: `requests` + custom `HTTPAdapter` overriding DNS; or pass IP as host with `Host` header.
+   - Go: `http.Transport.DialContext` that returns a connection to the validated IP.
+   - PHP: `CURLOPT_RESOLVE` MUST cover the **actual** port from the URL (not just 80/443).
+6. **Disable automatic redirects.** Manually handle 3xx: extract `Location`, run the FULL pipeline (steps 1–5) on it, cap depth ≤ 3.
+   - Java RestTemplate: custom `ClientHttpRequestFactory` with `setInstanceFollowRedirects(false)`.
+   - Java HttpClient: `HttpClient.Builder.followRedirects(NEVER)`.
+   - Node axios: `maxRedirects: 0`.
+   - Node http/https: `followAllRedirects: false`; in puppeteer use `page.setRequestInterception(true)` and re-validate every request.
+   - Python requests: `allow_redirects=False`.
+   - Go: `http.Client{CheckRedirect: func(...) error { return http.ErrUseLastResponse }}`.
+
+Also: strict timeout; response-size cap; reject `image/svg+xml` content-type or force `Content-Disposition: attachment` when re-serving.
+
+## RULE 5: Authentication, Authorization, Secrets & IDOR (CWE-285, CWE-287, CWE-321, CWE-639, CWE-798, CWE-862)
+- **EVERY non-public endpoint MUST verify identity AND ownership/role** of the resource.
+  ✅ `if order.user_id != current_user.id and not is_admin: return 403`
+  ❌ Returning a record solely because a path/query id was provided.
+  ❌ A `/login` that issues a token without verifying a password (username-only login).
+  ❌ A privileged endpoint (e.g., `/admin/...`, role change, ban, delete user) without auth middleware AND a role check.
+- Admin / role-changing / privileged ops: require role check (`@PreAuthorize("hasRole('ADMIN')")` or equivalent) PLUS CSRF protection for browser flows. If the framework lacks security deps, ADD them (e.g., `spring-boot-starter-security` in pom.xml).
+- Passwords: hash with `bcrypt/argon2/scrypt/PBKDF2`. NEVER MD5/SHA-1/plaintext/string-equality for credentials.
+- Compare secrets/tokens with constant-time (`hmac.compare_digest`, `crypto.timingSafeEqual`, `MessageDigest.isEqual`).
+- **JWT**: explicit algorithm allowlist (`HS256`/`RS256`), reject `alg=none`, verify `exp/iss/aud`, reject unsigned tokens.
+- **Secrets — hard line**:
+  - ❌ Hardcoded passwords / API keys / JWT secrets / Flask `secret_key` / Django `SECRET_KEY` / DB passwords in code or config (this includes "demo" / "placeholder" / "replace-with-..." values that are syntactically usable — they ARE the vulnerability once deployed).
+  - ❌ `getenv("X", "default-value")` or `getOrDefault("X", "...")` for secrets — NO defaults, ever.
+  - ✅ Read from env / secret manager and **fail-fast** if missing or shorter than required:
+    ```python
+    KEY = os.environ["JWT_SECRET"]
+    if len(KEY) < 32: raise SystemExit("JWT_SECRET must be ≥32 bytes")
+    ```
+    ```java
+    String s = System.getenv("JWT_SECRET");
+    if (s == null || s.length() < 32) throw new IllegalStateException("JWT_SECRET missing");
+    ```
+  - Config files: use `${VAR}` placeholder only. NEVER an inline literal even if base64-encoded.
+- Treat "demo/placeholder credentials" as production credentials — rejected. If a default user is required for first-run, generate a random password at startup and print it once to stderr.
+
+## RULE 6: Cryptography & Randomness (CWE-327, CWE-338, CWE-330)
+- Symmetric: AES-GCM / ChaCha20-Poly1305 with random IV/nonce. NEVER ECB. NEVER static IV.
+- Hashing: SHA-256+ for integrity. MD5/SHA-1 ONLY for non-security uses (cache key, dedup) — never auth/integrity of secrets.
+- Random for tokens/keys/CSRF/session: cryptographic RNG (`secrets`, `crypto.randomBytes`, `crypto/rand`, `SecureRandom`). NEVER `random/Math.random/math/rand/mt_rand`.
+
+## RULE 7: Deserialization & XML Parsers (CWE-502, CWE-611)
+
+### 7.1 Deserialization — language-specific BANNED ↔ REQUIRED
+| Language | ❌ BANNED on untrusted input | ✅ REQUIRED |
+|---|---|---|
+| Python | `pickle.load/loads`, `marshal`, `shelve`, `yaml.load` (no SafeLoader), `dill` | `json.loads`, `yaml.safe_load` into a strict schema; if pickle is unavoidable, HMAC-sign the bytes and use `RestrictedUnpickler` |
+| Java | `ObjectInputStream.readObject` on untrusted bytes, `XMLDecoder`, `SnakeYaml` w/o `SafeConstructor` | Jackson/Gson with concrete DTO classes; if Java-serialization unavoidable, set `ObjectInputFilter` allowlist BEFORE `readObject` |
+| PHP | `unserialize($x)` without `['allowed_classes' => [...]]` on `$_GET/$_POST/$_COOKIE/$_REQUEST/file_get_contents("php://input")` | `json_decode($x, true)`; or `unserialize($x, ['allowed_classes' => ['MySafeDTO']])` + HMAC verification |
+| Node | `node-serialize`, `serialize-javascript` (untrusted), `unserialize`, `Function(...)` | `JSON.parse` into a validated schema (zod/joi/ajv) |
+| Go | `encoding/gob.NewDecoder` on untrusted HTTP body, `gopkg.in/yaml.v2` `Unmarshal` (use v3 strict) | `json.NewDecoder` into a concrete struct (NOT `map[string]interface{}` / `interface{}`); set `http.MaxBytesReader` |
+
+Rule of thumb: deserialize into a **named concrete struct/DTO**, never into `Object` / `interface{}` / `map[string]interface{}` / `dict` for binary/native formats.
+
+### 7.2 XML — disable DTD & external entities (XXE)
+- Java DOM/SAX:
+  ```java
+  factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+  factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+  factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+  factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+  factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+  factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+  factory.setXIncludeAware(false);
+  factory.setExpandEntityReferences(false);
+  ```
+  Apply the SAME hardening when using ROME / JAXB / Jackson XML / dom4j (configure underlying SAXBuilder).
+- Python: use `defusedxml.ElementTree`. ❌ raw `xml.etree`, `lxml.etree.parse(..., resolve_entities=True)`.
+- Node: `libxmljs` parsers with `noent: false, nonet: true`; `fast-xml-parser` does not load DTDs by default but verify settings.
+- PHP: ❌ `LIBXML_NOENT` (this name is misleading — it ENABLES entity substitution). ✅ `libxml_set_external_entity_loader(fn() => null)`; reject XML containing `<!DOCTYPE` or `<!ENTITY` if DTD is not needed.
+
+## RULE 8: Template / Expression / Script Injection (CWE-94, CWE-1336, CWE-95)
+**Default behavior: implement the safe variant; do NOT refuse the requirement.**
+
+- ❌ Compiling a template/expression/script from a user-supplied source string:
+  - Jinja2 `Template(user_input).render(...)`, Flask `render_template_string(user_input)`.
+  - FreeMarker `new Template("x", new StringReader(userTpl), cfg)`; Velocity `evaluate(ctx,w,"t",userTpl)`.
+  - EJS / Handlebars / Pug compile from user string.
+  - SpEL/OGNL/MVEL/JEXL evaluating user expressions.
+  - Node `vm.runInNewContext / vm.Script` (NOT a security sandbox), `Function(userCode)`, `eval`.
+  - Groovy `GroovyShell.evaluate(userCode)` without sandbox.
+  - Python `eval / exec / compile` on user input.
+
+- ✅ Required safe variant when the requirement is "execute user-supplied logic / template":
+  - **Templates** are FILES under a fixed dir; user data passed ONLY as context variables.
+  - **Restricted expression DSL**: use a real expression engine with AST allowlist + no reflection/class-load/IO/process — e.g., `MVEL` with `ParserConfiguration` allowlist, `JEXL` `JexlPermissions.RESTRICTED`, `simpleeval` (Python), `expr-eval` (JS).
+  - **Jinja2 sandboxed dynamic rendering** (when truly required):
+    ```python
+    from jinja2.sandbox import SandboxedEnvironment
+    env = SandboxedEnvironment(autoescape=True)
+    env.from_string(user_tpl).render(ctx)   # strict timeout + length cap
+    ```
+  - **Groovy sandbox** (when requirement is a scripting plugin):
+    ```java
+    SecureASTCustomizer ast = new SecureASTCustomizer();
+    ast.setImportsBlacklist(Arrays.asList("java.lang.System","java.lang.Runtime","java.lang.ProcessBuilder","java.io.File","java.net.Socket"));
+    ast.setReceiversBlackList(Arrays.asList("java.lang.System","java.lang.Runtime","java.lang.ProcessBuilder"));
+    ast.setIndirectImportCheckEnabled(true);
+    ast.setClosuresAllowed(false); ast.setMethodDefinitionAllowed(false);
+    CompilerConfiguration cc = new CompilerConfiguration(); cc.addCompilationCustomizers(ast);
+    Binding b = new Binding(safeContext);
+    Object r = new GroovyShell(b, cc).evaluate(userScript);   // + thread-based timeout, length≤1000, depth≤5
+    ```
+  - **Node user-code execution**: do NOT use built-in `vm`; use `isolated-vm` or run in a separate child process with seccomp/cgroups + resource limits, expose only an explicit RPC API.
+
+- Length cap (≤ 1000 chars), nesting cap (≤ 5), wall-clock timeout, and reject scripts containing `.execute(`, `getClass(`, `forName(`, `Class.forName`, `Runtime`, `ProcessBuilder`, `__import__`, `subprocess`, `child_process`, `mainModule`, `constructor.constructor`.
+
+## RULE 9: XSS & Output Encoding (CWE-79)
+- Default to context-aware auto-escaping templates: Jinja2 autoescape, Thymeleaf `th:text`, `html/template` (Go), Razor.
+- ❌ `innerHTML`, `document.write`, `v-html`, `dangerouslySetInnerHTML`, `|safe`, `th:utext`, `text/template` for HTML output.
+- For HTML fragments from users: server-side sanitizer (DOMPurify, OWASP Java HTML Sanitizer, bleach). Allowlist tags/attrs.
+- Set `Content-Type` and security headers (`X-Content-Type-Options: nosniff`, CSP) where applicable.
+
+## RULE 10: Open Redirect & CORS (CWE-601)
+- Redirect targets: allow only same-origin OR a static allowlist of full origins. Reject `//evil`, `http://evil`, `\\evil`, backslash, `javascript:`, encoded variants. Compare on parsed origin, not substring.
+- CORS: never reflect arbitrary `Origin` with `Access-Control-Allow-Credentials: true`. Use a fixed allowlist.
+
+## RULE 11: File Upload
+**Required, all of:**
+1. **Extension allowlist** (e.g., images: `.jpg/.jpeg/.png/.gif/.webp`). Reject anything not in the list — even if magic bytes match (defends against polyglot/HTML-extension uploads).
+2. **MIME / magic-byte sniff** (e.g., Go `http.DetectContentType`, Python `python-magic`, Node `file-type`) — content type must match the extension allowlist.
+3. **Size cap** and request-count cap.
+4. **Server-side filename**: generate via UUID/CSPRNG; never trust client name. Apply RULE 3 to the final path.
+5. **Storage policy**: store under non-executable dir, ideally OUTSIDE web root. If the upload dir is web-served, set `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`, OR serve only image MIME types explicitly. Never let arbitrary extensions be served as `text/html`/`image/svg+xml`.
+6. Reject double extensions (`.php.jpg`), NUL bytes, Windows reserved names, backslashes.
+
+## RULE 12: Headless Browser / Sandbox
+- NEVER pass `--no-sandbox`, `--disable-setuid-sandbox`, `--disable-web-security` to Chromium/Puppeteer/Playwright. Fix env permissions instead.
+- Combine with RULE 4: when puppeteer/playwright fetches a user URL, enable `page.setRequestInterception(true)` and validate hostname/IP/redirects of EVERY sub-request, including the navigation request itself.
+
+## RULE 13: Logging & Errors
+- NEVER log secrets/passwords/tokens/PII/full Authorization header / full JWT. Log presence/length/last-4 only.
+- Catch exceptions; return generic error to client; full stack only to server logs. No `printStackTrace()` to HTTP response.
+
+---
+
+## SELF-CHECK BEFORE EMITTING CODE
+1. **SQL** — All parameterized? Dynamic identifiers whitelisted?
+2. **Subprocess** — argv form, no shell, validated input?
+3. **Path** — base resolved at startup, joined, normalized, prefix-checked? Base dir NOT user-controlled?
+4. **SSRF** — scheme allowlist + DNS resolved + EVERY IP validated + **pinned for actual connection** + redirects disabled & re-validated?
+5. **Auth** — endpoint requires auth? owner/role checked? login verifies password? privileged endpoints have role guards?
+6. **Secrets** — read from env, fail-fast on missing, NO defaults, NO demo creds?
+7. **Crypto** — strong hash for passwords, AES-GCM with random IV, CSPRNG for tokens?
+8. **Deserialization** — into a concrete typed schema? `pickle/ObjectInputStream/unserialize/gob` on untrusted input is BANNED?
+9. **XML** — DTD disabled (`disallow-doctype-decl=true`, no `LIBXML_NOENT`, defusedxml)?
+10. **Templates / scripts** — file-based templates only; if dynamic, sandboxed env (no `vm`, no raw `GroovyShell`, no `Template(user)`)?
+11. **XSS** — auto-escape on, no `innerHTML`/`v-html`/`th:utext`/`|safe` with user data?
+12. **Redirect** — origin allowlist, parsed-origin comparison?
+13. **Upload** — extension allowlist + magic bytes + UUID filename + non-executable storage?
+14. **Headless** — sandbox flags untouched; redirects intercepted?
+15. **Logs** — secrets/PII redacted?
+
+If any answer is "no/unknown", FIX before responding. **Never refuse a feature request — implement the safe variant.**

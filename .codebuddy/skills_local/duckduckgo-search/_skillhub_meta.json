@@ -1,0 +1,7 @@
+{
+  "slug": "duckduckgo-search",
+  "name": "Performs web searches using DuckDuckGo to retrieve real-time information from the internet. Use when the user needs to search for current events, documentation, tutorials, or any information that requires web search capabilities.",
+  "version": "1.0.0",
+  "installedAt": 1775630641385,
+  "source": "skillhub"
+}

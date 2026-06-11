@@ -55,6 +55,20 @@ ima-mcp/
 Thumbs.db
 .DS_Store
 
-# CodeBuddy (本地配置)
-.codebuddy/
+# CodeBuddy - 敏感个人数据
+.codebuddy/memery/
+.codebuddy/history/
+.codebuddy/inspiration/
+.codebuddy/connectors/
+.codebuddy/automations/
+.codebuddy/mcp/lexiang_config.json
+.codebuddy/settings/settings.json
 .mcp.json
+
+# 排除 node_modules (skills 内的)
+.codebuddy/**/node_modules/
+
+# 排除下载缓存目录（路径过长）
+.codebuddy/plugins_marketplace/download_*
+.codebuddy/plugins_marketplace/cb_teams_marketplace/.plugins-cache.json
+.codebuddy/plugins_marketplace/cb_teams_marketplace/.zip-metadata.json
