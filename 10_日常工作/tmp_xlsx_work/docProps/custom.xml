@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties">
+  <property name="ICV" fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2">
+    <vt:lpwstr xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">3F49897B522A4BEDBD5BDEC58DE109C8_11</vt:lpwstr>
+  </property>
+  <property name="KSOProductBuildVer" fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="3">
+    <vt:lpwstr xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">2052-12.1.0.26895</vt:lpwstr>
+  </property>
+  <property name="CalculationRule" fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="4">
+    <vt:i4 xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">1</vt:i4>
+  </property>
+</Properties>

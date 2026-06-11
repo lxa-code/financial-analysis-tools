@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties">
+  <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">lxa</dc:creator>
+  <dcterms:created xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="dcterms:W3CDTF">2026-06-08T12:14:27Z</dcterms:created>
+  <dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="dcterms:W3CDTF">2026-06-08T12:27:58Z</dcterms:modified>
+  <cp:lastModifiedBy>lxa</cp:lastModifiedBy>
+</cp:coreProperties>

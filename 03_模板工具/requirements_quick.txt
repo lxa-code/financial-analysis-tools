@@ -1,0 +1,132 @@
+# 城发投资 — Python 进阶扩展一键安装清单
+# 用法: pip install -r requirements_quick.txt
+# 首次安装(基础) + 本次(进阶) 完整集合
+
+# ============ 数据处理核心 ============
+pandas
+numpy
+scipy
+polars
+
+# ============ 数据验证 ============
+pandera
+great_expectations
+
+# ============ 机器学习/统计 ============
+scikit-learn
+statsmodels
+xgboost
+lightgbm
+catboost
+pmdarima
+prophet
+
+# ============ 可视化/仪表板 ============
+matplotlib
+seaborn
+plotly
+dash
+streamlit
+altair
+
+# ============ NLP/文本处理 ============
+jieba
+snownlp
+textblob
+gensim
+
+# ============ 模糊匹配/数据清洗 ============
+rapidfuzz
+thefuzz
+faker
+
+# ============ Excel/文档处理 ============
+openpyxl
+xlrd
+xlwt
+python-docx
+docxtpl
+python-pptx
+xlsx2csv
+pyexcel
+pyexcel-xlsx
+pyexcel-xls
+
+# ============ PDF处理 ============
+pdfplumber
+PyPDF2
+pdfminer.six
+camelot-py
+tabula-py
+pdf2image
+xhtml2pdf
+weasyprint
+markitdown
+
+# ============ 网页抓取 ============
+requests
+httpx
+beautifulsoup4
+lxml
+selenium
+
+# ============ 数据库 ============
+sqlalchemy
+pymongo
+redis
+psycopg2-binary
+
+# ============ API/Web框架 ============
+fastapi
+uvicorn
+pydantic
+email-validator
+
+# ============ 终端美化 ============
+rich
+typer
+loguru
+tqdm
+
+# ============ 图像 ============
+Pillow
+opencv-python
+
+# ============ 代码质量/测试 ============
+pytest
+black
+flake8
+mypy
+
+# ============ 加密/安全 ============
+cryptography
+python-jose
+passlib
+
+# ============ 自动化/调度 ============
+schedule
+watchdog
+invoke
+paramiko
+fabric
+
+# ============ 压缩文件 ============
+py7zr
+rarfile
+
+# ============ 配置/序列化 ============
+pyyaml
+orjson
+ujson
+msgspec
+jinja2
+
+# ============ 金融数据 ============
+akshare
+baostock
+
+# ============ 优化求解 ============
+pulp
+
+# ============ SQL解析 ============
+sqlparse

@@ -1,0 +1,9 @@
+{
+  "app_key": "3931ae5cb2a511efa2ac7245416cd0f6",
+  "app_secret": "dttNJOuEeYRmouzIyOqVeVEgM6s61haIgpeDKzrP",
+  "staff_id": "lixinan",
+  "api_base": "https://lxapi.lexiangla.com",
+  "token_url": "https://lxapi.lexiangla.com/cgi-bin/token",
+  "token_expires_in": 7200,
+  "note": "腾讯乐享开放平台API凭证，access_token有效期2小时"
+}

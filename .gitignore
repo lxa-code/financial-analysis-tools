@@ -1,0 +1,60 @@
+# Office 文档 (包含敏感业务数据)
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+
+# 扫描件和图片
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+
+# 大文件
+*.zip
+*.rar
+*.7z
+*.exe
+*.dll
+*.msi
+
+# node_modules
+node_modules/
+
+# 临时文件
+*_content.txt
+*_dump.txt
+_temp_*
+~$*
+
+# 缓存和配置
+__pycache__/
+*.pyc
+*.pyo
+*.cache
+.lexiang_token_cache.json
+
+# 敏感信息
+ima-mcp/
+*.key
+*.pem
+*api_key*
+*cnb_token*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# CodeBuddy (本地配置)
+.codebuddy/
+.mcp.json

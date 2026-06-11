@@ -1,0 +1,6 @@
+
+=== 淇滨热力_预算 ===
+Traceback (most recent call last):
+  File "d:\BaiduSyncdisk\CODE\城发投资工作专区\重点工作计划及问题清单\_read_doc.py", line 28, in <module>
+    print(line)
+UnicodeEncodeError: 'gbk' codec can't encode character '\ucfd0' in position 0: illegal multibyte sequence

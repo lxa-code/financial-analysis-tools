@@ -1,0 +1,189 @@
+{
+  "file_name": "年报数据_2020-2025_合并.xlsx",
+  "sheet_count": 2,
+  "sheets": {
+    "数据": {
+      "row_count": 14419,
+      "column_count": 8,
+      "columns": {
+        "所属板块": {
+          "dtype": "str",
+          "non_null_count": 13835,
+          "unique_count": 8,
+          "sample_values": [
+            "PPP项目",
+            "PPP项目",
+            "PPP项目"
+          ]
+        },
+        "是否并表": {
+          "dtype": "str",
+          "non_null_count": 14419,
+          "unique_count": 5,
+          "sample_values": [
+            "并表（已退出）",
+            "并表（已退出）",
+            "并表（已退出）"
+          ]
+        },
+        "公司名称": {
+          "dtype": "str",
+          "non_null_count": 14419,
+          "unique_count": 98,
+          "sample_values": [
+            "中原物流控股有限公司",
+            "中原物流控股有限公司",
+            "中原物流控股有限公司"
+          ]
+        },
+        "科目名称": {
+          "dtype": "str",
+          "non_null_count": 14419,
+          "unique_count": 65,
+          "sample_values": [
+            "货币资金",
+            "应收账款",
+            "预付款项"
+          ]
+        },
+        "年份": {
+          "dtype": "int64",
+          "non_null_count": 14419,
+          "unique_count": 6,
+          "min": 2020.0,
+          "max": 2025.0,
+          "mean": 2022.9433386503918,
+          "sample_values": [
+            "2020",
+            "2020",
+            "2020"
+          ]
+        },
+        "报表类型": {
+          "dtype": "str",
+          "non_null_count": 14419,
+          "unique_count": 6,
+          "sample_values": [
+            "资产负债表",
+            "资产负债表",
+            "资产负债表"
+          ]
+        },
+        "本期": {
+          "dtype": "float64",
+          "non_null_count": 14414,
+          "unique_count": 9599,
+          "min": -296692803.67,
+          "max": 21746804087.07,
+          "mean": 194162782.50305882,
+          "sample_values": [
+            "18166079.11",
+            "25740968.96",
+            "1684435.73"
+          ]
+        },
+        "上期": {
+          "dtype": "float64",
+          "non_null_count": 14398,
+          "unique_count": 8897,
+          "min": -358077174.83,
+          "max": 21746804087.07,
+          "mean": 175349473.31188083,
+          "sample_values": [
+            "0.0",
+            "0.0",
+            "0.0"
+          ]
+        }
+      }
+    },
+    "透视表": {
+      "row_count": 18,
+      "column_count": 7,
+      "columns": {
+        "所属板块": {
+          "dtype": "str",
+          "non_null_count": 17,
+          "unique_count": 17,
+          "sample_values": [
+            "是否并表",
+            "求和项:本期",
+            "公司名称"
+          ]
+        },
+        "垃圾发电": {
+          "dtype": "str",
+          "non_null_count": 16,
+          "unique_count": 3,
+          "sample_values": [
+            "(全部)",
+            "科目名称",
+            "资产合计"
+          ]
+        },
+        "Unnamed: 2": {
+          "dtype": "object",
+          "non_null_count": 13,
+          "unique_count": 13,
+          "sample_values": [
+            "年份",
+            "2021",
+            "270493890.7"
+          ]
+        },
+        "Unnamed: 3": {
+          "dtype": "float64",
+          "non_null_count": 14,
+          "unique_count": 14,
+          "min": 2022.0,
+          "max": 4854542897.85,
+          "mean": 733482826.2478572,
+          "sample_values": [
+            "2022.0",
+            "351586058.17",
+            "1067660366.18"
+          ]
+        },
+        "Unnamed: 4": {
+          "dtype": "float64",
+          "non_null_count": 14,
+          "unique_count": 14,
+          "min": 2023.0,
+          "max": 5205208699.26,
+          "mean": 788499991.0607144,
+          "sample_values": [
+            "2023.0",
+            "410503552.63",
+            "1133393176.97"
+          ]
+        },
+        "Unnamed: 5": {
+          "dtype": "float64",
+          "non_null_count": 14,
+          "unique_count": 14,
+          "min": 2024.0,
+          "max": 6571219107.38,
+          "mean": 930875657.4835714,
+          "sample_values": [
+            "2024.0",
+            "434636443.73",
+            "1578659895.28"
+          ]
+        },
+        "Unnamed: 6": {
+          "dtype": "float64",
+          "non_null_count": 14,
+          "unique_count": 14,
+          "min": 2025.0,
+          "max": 6839408215.98,
+          "mean": 1058538390.6978571,
+          "sample_values": [
+            "2025.0",
+            "438724371.34",
+            "1246021016.77"
+          ]
+        }
+      }
+    }
+  }
+}

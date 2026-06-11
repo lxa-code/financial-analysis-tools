@@ -1,0 +1,14 @@
+{
+  "name": "钉钉机器人",
+  "endpoint": "https://oapi.dingtalk.com/robot/send?access_token=a1deb21ef823c297d48dee90647a4ec4c563d7f5168363e92d027082b24a2ba6",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "msgtype": "text",
+    "text": {
+      "content": "${message}"
+    }
+  }
+}
